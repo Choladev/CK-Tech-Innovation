@@ -1,0 +1,262 @@
+/* CK Tech Innovation — E‑commerce React Single-File App File: App.jsx (single-file demo)
+
+Setup (recommended):
+
+1. Create a new React app (Vite or CRA). Example with Vite: npm create vite@latest ck-tech-store --template react cd ck-tech-store
+
+
+2. Install dependencies (optional): npm install
+
+
+3. Install Tailwind CSS (follow Tailwind docs). Quick steps: npm install -D tailwindcss postcss autoprefixer npx tailwindcss init -p Add to tailwind.config.js: content: ['./index.html','./src/**/*.{js,jsx,ts,tsx}'] In src/index.css add: @tailwind base; @tailwind components; @tailwind utilities;
+
+
+4. Replace src/App.jsx with the contents of this file. Import the index.css in src/main.jsx.
+
+
+5. Run: npm run dev
+
+
+
+Notes:
+
+This is a single-file app for demo and prototyping. For production, split into components and add backend for orders & payments.
+
+Payment method supported in checkout: Airtel Money +260 979187747 and MTN Mobile Money +260 963414738 (ZMW)
+
+The app simulates checkout and generates an order reference the user should use when sending mobile money.
+
+
+*/
+
+import React, { useState, useEffect } from 'react';
+
+const SAMPLE_PRODUCTS = [ { id: 'p1', title: 'CK X1 Smartphone', price: 3299, desc: '6.6" Display · 8GB RAM · 128GB Storage · 48MP Camera', img: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=3e2b6f0ad3f6fda9f0e1b6b4b6d7e8da' }, { id: 'p2', title: 'ProBook Laptop 14"', price: 6999, desc: 'Intel i5 · 8GB · 512GB SSD · Lightweight for work and school', img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=0b5bda0b8b9a1e3b1b9d1b5b4b6b7b8a' }, { id: 'p3', title: 'FastCharge 20W Charger', price: 199, desc: 'USB-C · Fast charging · Compact', img: 'https://images.unsplash.com/photo-1585386959984-a4155225d0a2?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=07e1c2c8a3f78f9a2d8b4b0b6c7d8e1f' }, { id: 'p4', title: 'Wireless Earbuds S', price: 499, desc: 'Noise reduction · 8hr battery · Bluetooth 5.2', img: 'https://images.unsplash.com/photo-1580910051074-4b1b9a5a3a6a?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d' } ];
+
+// Merchant mobile money numbers (Zambia) const MERCHANTS = { airtel: { name: 'Airtel Money', phone: '+260 979 187 747' }, mtn: { name: 'MTN Mobile Money', phone: '+260 963 414 738' } };
+
+function currency(zmw) { return ZMW ${Number(zmw).toLocaleString('en-ZM')}; }
+
+export default function App() { const [products] = useState(SAMPLE_PRODUCTS); const [cart, setCart] = useState(() => { try { const raw = localStorage.getItem('ck_cart'); return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; } }); const [view, setView] = useState('store'); // store | cart | checkout | thanks const [checkoutInfo, setCheckoutInfo] = useState({ name: '', phone: '', address: '' }); const [selectedMethod, setSelectedMethod] = useState('airtel'); const [orderRef, setOrderRef] = useState(null);
+
+useEffect(() => { localStorage.setItem('ck_cart', JSON.stringify(cart)); }, [cart]);
+
+const addToCart = (product, qty = 1) => { setCart(prev => { const copy = { ...prev }; if (!copy[product.id]) copy[product.id] = { ...product, qty: 0 }; copy[product.id].qty += qty; return copy; }); };
+
+const updateQty = (id, qty) => { setCart(prev => { const copy = { ...prev }; if (!copy[id]) return prev; copy[id] = { ...copy[id], qty: Math.max(0, qty) }; if (copy[id].qty === 0) delete copy[id]; return copy; }); };
+
+const clearCart = () => { setCart({}); };
+
+const subtotal = Object.values(cart).reduce((s, p) => s + p.price * p.qty, 0); const shipping = subtotal > 5000 || subtotal === 0 ? 0 : 150; // simple rule const total = subtotal + shipping;
+
+// Generate a concise order reference const generateOrderRef = () => { const t = Date.now().toString(36).slice(-6).toUpperCase(); const r = Math.random().toString(36).slice(2, 6).toUpperCase(); return CK${t}-${r}; };
+
+const placeOrder = () => { if (!checkoutInfo.name || !checkoutInfo.phone || !Object.keys(cart).length) { alert('Please provide name, phone and at least one item in cart.'); return; } const ref = generateOrderRef(); setOrderRef(ref); setView('thanks'); // In real app: send order to backend, send SMS or WhatsApp confirmation. // For now we keep it client-side and instruct user on how to complete mobile money payment. };
+
+const copyToClipboard = async (text) => { try { await navigator.clipboard.writeText(text); alert('Copied to clipboard'); } catch (e) { alert('Could not copy automatically — please copy manually: ' + text); } };
+
+return ( <div className="min-h-screen bg-slate-50 text-slate-900 p-6"> <header className="max-w-6xl mx-auto flex items-center justify-between gap-4"> <div className="flex items-center gap-3"> <div className="rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 p-2 text-white font-bold shadow-md">CK</div> <div> <h1 className="text-2xl font-extrabold">CK Tech Innovation</h1> <p className="text-sm text-slate-500">Mobile Phones · Laptops · Accessories — Shop securely in Zambia</p> </div> </div> <nav className="flex items-center gap-3"> <button onClick={() => setView('store')} className={px-3 py-2 rounded ${view==='store' ? 'bg-white shadow' : 'hover:bg-white/60'}}>Shop</button> <button onClick={() => setView('cart')} className={px-3 py-2 rounded ${view==='cart' ? 'bg-white shadow' : 'hover:bg-white/60'}}>Cart ({Object.keys(cart).length})</button> <button onClick={() => setView('checkout')} className={px-3 py-2 rounded ${view==='checkout' ? 'bg-white shadow' : 'hover:bg-white/60'}}>Checkout</button> </nav> </header>
+
+<main className="max-w-6xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <section className="md:col-span-2">
+      {view === 'store' && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Featured Products</h2>
+            <div className="text-sm text-slate-500">Secure payments via Airtel & MTN Mobile Money (ZMW)</div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {products.map(p => (
+              <article key={p.id} className="bg-white rounded-lg p-4 shadow-sm flex flex-col">
+                <img src={p.img} alt={p.title} className="h-40 w-full object-cover rounded-md mb-3" />
+                <h3 className="font-bold text-lg">{p.title}</h3>
+                <p className="text-sm text-slate-500 my-1">{p.desc}</p>
+                <div className="mt-auto flex items-center justify-between">
+                  <div className="text-xl font-semibold">{currency(p.price)}</div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => addToCart(p, 1)} className="px-3 py-1 rounded bg-indigo-600 text-white">Add</button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {view === 'cart' && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Your Cart</h2>
+          {Object.keys(cart).length === 0 ? (
+            <div className="bg-white p-6 rounded shadow-sm text-center">Your cart is empty. Browse products and add items.</div>
+          ) : (
+            <div className="space-y-4">
+              {Object.values(cart).map(item => (
+                <div key={item.id} className="bg-white rounded p-4 shadow-sm flex gap-4 items-center">
+                  <img src={item.img} alt={item.title} className="w-24 h-24 object-cover rounded" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold">{item.title}</h3>
+                      <div className="font-semibold">{currency(item.price * item.qty)}</div>
+                    </div>
+                    <p className="text-sm text-slate-500">{item.desc}</p>
+                    <div className="mt-2 inline-flex items-center gap-2">
+                      <button className="px-2 py-1 rounded border" onClick={() => updateQty(item.id, item.qty - 1)}>-</button>
+                      <div className="px-3 py-1 border rounded">{item.qty}</div>
+                      <button className="px-2 py-1 rounded border" onClick={() => updateQty(item.id, item.qty + 1)}>+</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="bg-white p-4 rounded shadow-sm flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-slate-500">Subtotal</div>
+                  <div className="font-bold text-xl">{currency(subtotal)}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setView('store')} className="px-4 py-2 rounded border">Continue shopping</button>
+                  <button onClick={() => setView('checkout')} className="px-4 py-2 rounded bg-indigo-600 text-white">Proceed to checkout</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {view === 'checkout' && (
+        <div className="bg-white p-6 rounded shadow-sm">
+          <h2 className="text-xl font-semibold mb-3">Checkout</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm">Full name</label>
+              <input value={checkoutInfo.name} onChange={e => setCheckoutInfo(prev => ({ ...prev, name: e.target.value }))} className="w-full mt-1 p-2 border rounded" placeholder="John Banda" />
+              <label className="block text-sm mt-3">Phone (recipient contact)</label>
+              <input value={checkoutInfo.phone} onChange={e => setCheckoutInfo(prev => ({ ...prev, phone: e.target.value }))} className="w-full mt-1 p-2 border rounded" placeholder="+260 97..." />
+              <label className="block text-sm mt-3">Delivery address</label>
+              <textarea value={checkoutInfo.address} onChange={e => setCheckoutInfo(prev => ({ ...prev, address: e.target.value }))} className="w-full mt-1 p-2 border rounded" rows={3} placeholder="Street, Area, City" />
+
+              <div className="mt-4">
+                <div className="text-sm text-slate-600">Choose payment method</div>
+                <div className="mt-2 flex gap-2">
+                  <label className={`p-3 border rounded cursor-pointer ${selectedMethod==='airtel' ? 'ring-2 ring-indigo-300' : ''}`}>
+                    <input type="radio" name="method" checked={selectedMethod==='airtel'} onChange={() => setSelectedMethod('airtel')} /> <span className="ml-2">Airtel Money</span>
+                  </label>
+                  <label className={`p-3 border rounded cursor-pointer ${selectedMethod==='mtn' ? 'ring-2 ring-indigo-300' : ''}`}>
+                    <input type="radio" name="method" checked={selectedMethod==='mtn'} onChange={() => setSelectedMethod('mtn')} /> <span className="ml-2">MTN Mobile Money</span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+
+            <aside className="bg-slate-50 p-4 rounded">
+              <h3 className="font-semibold">Order summary</h3>
+              <div className="mt-3">
+                {Object.values(cart).length === 0 ? <div className="text-sm text-slate-500">No items</div> : (
+                  <ul className="space-y-2">
+                    {Object.values(cart).map(i => (
+                      <li key={i.id} className="flex items-center justify-between">
+                        <div className="text-sm">{i.title} x{i.qty}</div>
+                        <div className="font-semibold">{currency(i.price * i.qty)}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="mt-3 border-t pt-3">
+                <div className="flex justify-between text-sm"><div>Subtotal</div><div>{currency(subtotal)}</div></div>
+                <div className="flex justify-between text-sm"><div>Shipping</div><div>{shipping === 0 ? 'Free' : currency(shipping)}</div></div>
+                <div className="flex justify-between font-bold text-lg mt-2"><div>Total</div><div>{currency(total)}</div></div>
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <button onClick={placeOrder} className="flex-1 px-4 py-2 rounded bg-green-600 text-white">Place order</button>
+                <button onClick={() => { clearCart(); setView('store'); }} className="px-4 py-2 rounded border">Clear</button>
+              </div>
+
+              <div className="mt-4 text-xs text-slate-500">After placing the order you'll receive an order reference and clear instructions to pay via the selected mobile money method. Payments are manual: send money to our merchant number and include the order reference in the payment description.</div>
+            </aside>
+          </div>
+        </div>
+      )}
+
+      {view === 'thanks' && (
+        <div className="bg-white p-6 rounded shadow-sm">
+          <h2 className="text-2xl font-bold">Thank you — Order placed</h2>
+          <p className="mt-2 text-slate-600">Your order reference is:</p>
+          <div className="mt-3 inline-flex items-center gap-3">
+            <div className="px-4 py-2 bg-slate-100 rounded font-mono font-semibold">{orderRef || '—'}</div>
+            <button onClick={() => copyToClipboard(orderRef || '')} className="px-3 py-1 border rounded">Copy</button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-slate-50 p-4 rounded">
+              <h3 className="font-semibold">Pay with {MERCHANTS[selectedMethod].name}</h3>
+              <p className="mt-2">Send exactly <span className="font-bold">{currency(total)}</span> to:</p>
+              <div className="mt-2 font-mono font-semibold">{MERCHANTS[selectedMethod].phone}</div>
+              <div className="mt-2 text-sm text-slate-600">Payment note / reference: <span className="font-semibold">{orderRef}</span></div>
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => copyToClipboard(MERCHANTS[selectedMethod].phone)} className="px-3 py-1 border rounded">Copy number</button>
+                <button onClick={() => copyToClipboard(`${MERCHANTS[selectedMethod].phone} | ${orderRef} | ${currency(total)}`)} className="px-3 py-1 border rounded">Copy full text</button>
+              </div>
+
+              <div className="mt-3 text-sm text-slate-600">After payment, send proof (screenshot) to our WhatsApp or call the number to confirm and arrange delivery.</div>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded">
+              <h3 className="font-semibold">Quick tips to pay (mobile money)</h3>
+              <ol className="list-decimal list-inside text-sm space-y-2 mt-2 text-slate-600">
+                <li>Open your Airtel/MTN mobile money app or dial the USSD code.</li>
+                <li>Choose Send Money → Enter recipient number: <strong>{MERCHANTS[selectedMethod].phone}</strong></li>
+                <li>Enter the amount: <strong>{currency(total)}</strong></li>
+                <li>Enter payment note/reference: <strong>{orderRef}</strong></li>
+                <li>Confirm and keep the receipt screenshot — send it to us to speed up confirmation.</li>
+              </ol>
+
+              <div className="mt-3 text-sm">If you want a proforma invoice or breakdown emailed to you, contact us with your email and order reference.</div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <button onClick={() => { clearCart(); setCheckoutInfo({ name: '', phone: '', address: '' }); setOrderRef(null); setView('store'); }} className="px-4 py-2 border rounded">Back to shopping</button>
+            <button onClick={() => window.print()} className="px-4 py-2 rounded bg-indigo-600 text-white">Print receipt</button>
+          </div>
+        </div>
+      )}
+
+    </section>
+
+    <aside className="bg-white p-4 rounded shadow-sm">
+      <h3 className="font-semibold">Why buy from CK Tech?</h3>
+      <ul className="mt-3 text-sm space-y-2 text-slate-600">
+        <li>Local support & delivery across Zambia</li>
+        <li>Secure payments via Airtel & MTN mobile money</li>
+        <li>Warranty & after-sales support</li>
+        <li>Next-day delivery in Lusaka (subject to stock)</li>
+      </ul>
+
+      <div className="mt-4">
+        <h4 className="font-semibold">Contact</h4>
+        <div className="text-sm mt-2">Airtel: <button className="underline" onClick={() => copyToClipboard(MERCHANTS.airtel.phone)}>{MERCHANTS.airtel.phone}</button></div>
+        <div className="text-sm mt-1">MTN: <button className="underline" onClick={() => copyToClipboard(MERCHANTS.mtn.phone)}>{MERCHANTS.mtn.phone}</button></div>
+        <div className="text-sm mt-3">Email: <a href="mailto:info@cktechinnovation.zm" className="text-indigo-600">info@cktechinnovation.zm</a></div>
+      </div>
+
+      <div className="mt-4">
+        <h4 className="font-semibold">Fast links</h4>
+        <div className="flex flex-col gap-2 mt-2">
+          <button onClick={() => setView('store')} className="text-left px-3 py-2 rounded hover:bg-slate-50">Shop</button>
+          <button onClick={() => setView('cart')} className="text-left px-3 py-2 rounded hover:bg-slate-50">Cart</button>
+          <button onClick={() => setView('checkout')} className="text-left px-3 py-2 rounded hover:bg-slate-50">Checkout</button>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <footer className="mt-12 text-center text-sm text-slate-500">© {new Date().getFullYear()} CK Tech Innovation — Built for Zambian shoppers • Pay via Airtel/MTN Mobile Money</footer>
+</div>
+
+); }
+
